@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+from busmap.datastruct import *
 
 class Table:
 
@@ -41,22 +42,21 @@ def is_time_str(text):
     return False
 
 
-def table_to_fact(table, line_data):
-    station_def = []
-    car_def = []
-    car_stops = []
+def table_to_fact(db, table, line, day_options=None):
+    if not day_options:
+        day_options = []
 
     station_colidx_map = {}
-    for sta in line_data.get_stations():
-        station_def.append("data_station('{0}').".format(sta.name))
-        for label in [sta.name] + sta.alternative_names:
+    for sta in line.get_stations():
+        for label in [sta.name] + sta.altnames:
             station_colidx_map[(sta.name, 'stop')] = table.col_index(label)
             station_colidx_map[(sta.name, 'leave')] = table.col_index(label+'発')
             station_colidx_map[(sta.name, 'arrive')] = table.col_index(label+'着')
 
     for rowid in range(table.num_rows()):
-        car_id = "{0}-{1}".format(line_data.name, rowid)
-        car_def.append("data_car('{0}').".format(car_id))
+        car_name = "{0}-{1}-day:{2}".format(line.name, rowid, ':'.join(sorted(day_options)))
+        car = Car(name=car_name, linename=line.name)
+        db.add(car)
         for (sta, dtype), colid in station_colidx_map.items():
             if colid is None:
                 continue
@@ -64,6 +64,6 @@ def table_to_fact(table, line_data):
             if val is None:
                 continue
             if is_time_str(val):
-                car_stops.append("data_car_stop('{0}', '{1}', '{2}', {3}).".format(car_id, sta, val, dtype))
+                car.add_event(CarEvent(time=val, event=dtype, station=sta))
 
-    return '\n'.join(station_def + car_def + car_stops)
+

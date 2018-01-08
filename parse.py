@@ -1,30 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from busmap import pdfutil, tablereader
+from busmap import pdfutil, tablereader, preset_data_reader
 from busmap.datastruct import *
 
 db = Database()
 
-def init_db():
-    db.add(Station(name='木更津駅東口', alternative_names=['木更津東口']))
-    db.add(Station(name='長浦駅北口'))
-    db.add(Station(name='袖ケ浦駅'))
-    db.add(Station(name='袖ケ浦バスターミナル', alternative_names=['袖ケ浦BT']))
-    db.add(Station(name='金田バスターミナル', alternative_names=['金田BT']))
-    db.add(Station(name='品川駅東口'))
+PRESET_DATA_DIR = "./preset_data"
 
-    db.add(Line(
-        name='高速バス木更津・品川線',
-        stations=[
-            '木更津駅東口',
-            '長浦駅北口',
-            '袖ケ浦駅',
-            '袖ケ浦バスターミナル',
-            '金田バスターミナル',
-            '品川駅東口'
-        ]
-    ))
 
 
 def parse_kisarazu_shinagawa():
@@ -32,8 +15,6 @@ def parse_kisarazu_shinagawa():
 
     page = pages[0]
     kuradi = page.search_text_contains("下り").first()
-
-
 
     clipped_page = page.clipped(page.bounds.left_area_of(kuradi.rect), inclusive=False)
 
@@ -59,15 +40,23 @@ def parse_kisarazu_shinagawa():
 
     table.finish_layout()
 
-    print(tablereader.table_to_fact(table, db.get_line('高速バス木更津・品川線')))
+
+    print(tablereader.table_to_fact(
+        db,
+        table,
+        line=db.get_line('高速バス木更津・品川線'),
+        day_options=['weekday']
+    ))
     page.flush_debug_marks()
+
+    db.dump('tmp/dbdump.txt')
 
 
 def main():
     parse_kisarazu_shinagawa()
 
 if __name__ == '__main__':
-    init_db()
+    preset_data_reader.read_preset_files(db, PRESET_DATA_DIR)
     main()
 
 

@@ -1,0 +1,34 @@
+
+
+- t: station
+  name: "木更津駅東口"
+  altnames: ["木更津東口"]
+
+- t: station
+  name: "長浦駅北口"
+
+- t: station
+  name: "袖ケ浦駅"
+
+- t: station
+  name: "袖ケ浦バスターミナル"
+  altnames: ["袖ケ浦BT"]
+
+- t: station
+  name: '金田バスターミナル'
+  altnames: ['金田BT']
+
+- t: station
+  name: '品川駅東口'
+
+
+- t: line
+  name: "高速バス木更津・品川線"
+  stations:
+    - '木更津駅東口'
+    - '長浦駅北口'
+    - '袖ケ浦駅'
+    - '袖ケ浦バスターミナル'
+    - '金田バスターミナル'
+    - '品川駅東口'
+
