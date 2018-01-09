@@ -42,7 +42,7 @@ def is_time_str(text):
     return False
 
 
-def table_to_fact(db, table, line, day_options=None):
+def table_to_fact(db, table, line, tablename="", day_options=None):
     if not day_options:
         day_options = []
 
@@ -54,7 +54,9 @@ def table_to_fact(db, table, line, day_options=None):
             station_colidx_map[(sta.name, 'arrive')] = table.col_index(label+'着')
 
     for rowid in range(table.num_rows()):
-        car_name = "{0}-{1}-day:{2}".format(line.name, rowid, ':'.join(sorted(day_options)))
+        car_name_arr = filter(lambda item: item, [line.name, tablename, rowid] + sorted(day_options))
+        car_name = '-'.join(str(v) for v in car_name_arr)
+
         car = Car(name=car_name, linename=line.name)
         db.add(car)
         for (sta, dtype), colid in station_colidx_map.items():

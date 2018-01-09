@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Map</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css"
+   integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ=="
+   crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"
+   integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log=="
+   crossorigin=""></script>
+
+    <script type="text/javascript" src="jquery-3.2.1.js"></script>
+    <script type="text/javascript" src="busmapper.js"></script>
+    <script type="text/javascript" src="db.js"></script>
+    <style>
+
+        #mapbox {
+            height: 600px;
+        }
+
+        .timeslider{
+            width: 50%;
+        }
+
+    </style>
+</head>
+<body>
+    <div>
+        <label>T:<input class="timeslider" type="range" name="range" min="0" max="86400"></label>
+        <button class="play1_btn">Play1</button>
+        <button class="play10_btn">Play10</button>
+        <button class="stop_btn">Stop</button>
+        <br>
+
+        <span class="timeval"></span>
+    </div>
+    <div>
+         <div id="mapbox"></div>
+    </div>
+</body>
+</html>

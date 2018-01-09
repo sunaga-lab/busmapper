@@ -194,6 +194,8 @@ class Rectangle:
             raise TypeError("{0} is not Real number".format(x))
         return Rectangle(top=self.top, bottom=self.bottom, left=x, right=self.right)
 
+    def top_left(self):
+        return Point(x=self.left, y=self.top, coord_sys=self.coord_sys)
 
 
 def sq(v):
@@ -411,15 +413,19 @@ class Page:
         self.dmark_default_draw_type = 'main'
         self.dmark_draw_types = {
             'sub': {
-                'color': (255,0,0, 128),
+                'color': (255,0,0, 255),
                 'width': 2
             },
             'main': {
-                'color': (0, 255, 0, 128),
+                'color': (0, 255, 0, 255),
                 'width': 2
             },
             'label': {
-                'color': (0, 0, 255, 128),
+                'color': (0, 0, 255, 255),
+                'width': 2
+            },
+            'clip': {
+                'color': (255, 0, 255, 255),
                 'width': 2
             }
         }
@@ -446,7 +452,7 @@ class Page:
     def full_page(self):
         return self
 
-    def clipped(self, bounds, inclusive=True):
+    def clipped(self, bounds, inclusive=True, clip_name=None):
         clipped_page = ClippedPage(self, bounds)
 
         for tl in self.lines.items:
@@ -458,6 +464,9 @@ class Page:
                 clipped_page.lines.add(tl.clipped(bounds, inclusive=inclusive))
                 continue
 
+        if clip_name is not None:
+            self.dmark_rect('clip', bounds)
+            self.dmark_text('clip', bounds.top_left(), "CLIP:" + clip_name)
         return clipped_page
 
     def add_text_line(self, char_list, pos_text, boxid, char_size_max=None):
@@ -562,7 +571,7 @@ class ClippedPage(Page):
         self.original_page.dmark_line(*idx, **kw)
 
     def dmark_rect(self, *idx, **kw):
-        self.original_page.dmark_line(*idx, **kw)
+        self.original_page.dmark_rect(*idx, **kw)
 
     def dmark_text(self, *idx, **kw):
         self.original_page.dmark_text(*idx, **kw)
