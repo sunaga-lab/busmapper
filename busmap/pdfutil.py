@@ -180,19 +180,39 @@ class Rectangle:
     def __repr__(self):
         return "<Rect: {0}>".format(self.coords)
 
+
+    def _inv_edge(self, e):
+        return {
+            'left': 'right',
+            'right': 'left',
+            'bottom': 'top',
+            'top': 'bottom'
+        }.get(e)
+
+    def _edge_area_of(self, edge, val):
+        if isinstance(val, AbstractTextLine):
+            return self._edge_area_of(edge, getattr(val.rect, edge))
+        if isinstance(val, Rectangle):
+            return self._edge_area_of(edge, getattr(val, edge))
+        elif isinstance(val, numbers.Real):
+            p = dict(top=self.top, bottom=self.bottom, left=self.left, right=self.right)
+            p[self._inv_edge(edge)] = val
+            return Rectangle(**p)
+
+        raise TypeError("{0} is invalid".format(val))
+
     def left_area_of(self, x):
-        if isinstance(x, Rectangle):
-            return self.left_area_of(x.left)
-        if not isinstance(x, numbers.Real):
-            raise TypeError("{0} is not Real number".format(x))
-        return Rectangle(top=self.top, bottom=self.bottom, left=self.left, right=x)
+        return self._edge_area_of('left', x)
 
     def right_area_of(self, x):
-        if isinstance(x, Rectangle):
-            return self.right_area_of(x.right)
-        if not isinstance(x, numbers.Real):
-            raise TypeError("{0} is not Real number".format(x))
-        return Rectangle(top=self.top, bottom=self.bottom, left=x, right=self.right)
+        return self._edge_area_of('right', x)
+
+    def top_area_of(self, y):
+        return self._edge_area_of('top', y)
+
+    def bottom_area_of(self, y):
+        return self._edge_area_of('bottom', y)
+
 
     def top_left(self):
         return Point(x=self.left, y=self.top, coord_sys=self.coord_sys)
@@ -232,9 +252,17 @@ class Point:
 
 
 
+normalize_replace_map = [
+    [' ', ''],
+    ['　', '']
+]
+
 def normalize_text(text):
-    text = text.replace(' ', '').replace('　', '').strip()
-    return zenhan.z2h(text, mode=7)
+    text = text.strip()
+    text = zenhan.z2h(text, mode=7)
+    for a, b in normalize_replace_map:
+        text = text.replace(a,b)
+    return text
 
 
 class AbstractTextLine:
@@ -245,9 +273,10 @@ class AbstractTextLine:
 
 class CharBox:
 
-    def __init__(self, char, rect):
+    def __init__(self, char, rect, size):
         self.char = char
         self.rect = rect
+        self.size = size
 
     @staticmethod
     def char_list_to_text(char_list):
@@ -469,10 +498,13 @@ class Page:
             self.dmark_text('clip', bounds.top_left(), "CLIP:" + clip_name)
         return clipped_page
 
-    def add_text_line(self, char_list, pos_text, boxid, char_size_max=None):
-        tl = TextLine(self, char_list, Rectangle.from_bbox_str(pos_text))
+    def add_text_line(self, char_list, boxid):
+        if not char_list:
+            return None
+        text_rect = Rectangle.covered_rect(*[c.rect for c in char_list])
+        tl = TextLine(self, char_list, text_rect)
         tl.boxid = boxid
-        tl.char_size_max = char_size_max
+        tl.char_size_max = max(c.size for c in char_list)
         self.lines.add(tl)
         return tl
 
@@ -591,20 +623,22 @@ def pdfxml_to_pages(pdfxml, original_pdf=None):
 
         for textbox in etpage.findall('textbox'):
             box_text = ""
+            boxid_seq = 0
             for textline in textbox.findall('textline'):
                 line_chars = []
-                char_size_max = 0
                 for char in textline.findall('text'):
-                    if not normalize_text(char.text):
+                    if not normalize_text(char.text) and len(char.attrib.keys()) == 0:
+                        page.add_text_line(line_chars, boxid="{0}_{1}".format(textbox.attrib['id'], boxid_seq))
+                        line_chars = []
+                        boxid_seq += 1
                         continue
-                    line_chars.append(CharBox(char.text, Rectangle.from_bbox_str(char.attrib.get('bbox'))))
-                    char_size_max = max(char_size_max, float(char.attrib.get('size', 0)))
-                page.add_text_line(line_chars,
-                               pos_text=textline.attrib['bbox'],
-                               boxid=textbox.attrib['id'],
-                               char_size_max=char_size_max)
+                    line_chars.append(CharBox(char.text, Rectangle.from_bbox_str(char.attrib.get('bbox')), float(char.attrib.get('size', 0))))
+
+                page.add_text_line(line_chars, boxid="{0}_{1}".format(textbox.attrib['id'], boxid_seq))
         pages.append(page)
     return pages
+
+
 
 def pdf_to_pdfxml(pdffn):
     print("Running pdf2txt...")
@@ -614,6 +648,9 @@ def pdf_to_pdfxml(pdffn):
     proc = subprocess.run(args=cmd, check=True, stdout=subprocess.PIPE)
     xmltxt = proc.stdout
     return xmltxt
+
+
+
 
 def dumppdf(pdffn):
     xmltxt = pdf_to_pdfxml(pdffn)
@@ -656,6 +693,16 @@ class TableRecognizer:
             'y': ypos
         })
 
+    def decl_sequential_rows(self, start_pos, sequence):
+        cur = start_pos
+        for item in sequence:
+            cand = self.page.search_text_contains(str(item), single_label_only=True)
+            vlabel = cand.nearest_from(cur)
+            if not vlabel:
+                return
+            self.decl_row(str(item), ypos=vlabel.center_pos.y)
+            cur = vlabel
+
     def finish_layout(self):
         self.columns.sort(key=lambda item:item['x'])
         self.rows.sort(key=lambda item:-item['y'])
@@ -696,6 +743,7 @@ class TableRecognizer:
     def col_index(self, colname):
         for coldt in self.columns:
             if isinstance(colname, str) and coldt['label'] == normalize_text(colname):
+                print("col found:", colname, "in colmap:", coldt)
                 return coldt['col_id']
         return None
 

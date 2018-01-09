@@ -254,9 +254,6 @@ class Path:
             )
             if self.point_time[-1] >= 1.0:
                 self.point_time[-1] = 1.0
-        print("PointDur", point_dur)
-        print("point_time", self.point_time)
-        print("all_dur", all_dur)
 
     def ddump(self, db):
         return {

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 from busmap.datastruct import *
+from busmap.pdfutil import normalize_text
 
 class Table:
 
@@ -46,12 +47,12 @@ def table_to_fact(db, table, line, tablename="", day_options=None):
     if not day_options:
         day_options = []
 
-    station_colidx_map = {}
+    station_colidx = []
     for sta in line.get_stations():
         for label in [sta.name] + sta.altnames:
-            station_colidx_map[(sta.name, 'stop')] = table.col_index(label)
-            station_colidx_map[(sta.name, 'leave')] = table.col_index(label+'発')
-            station_colidx_map[(sta.name, 'arrive')] = table.col_index(label+'着')
+            station_colidx.append((sta.name, 'stop', table.col_index(label)))
+            station_colidx.append((sta.name, 'leave', table.col_index(label+'発')))
+            station_colidx.append((sta.name, 'arrive', table.col_index(label+'着')))
 
     for rowid in range(table.num_rows()):
         car_name_arr = filter(lambda item: item, [line.name, tablename, rowid] + sorted(day_options))
@@ -59,7 +60,7 @@ def table_to_fact(db, table, line, tablename="", day_options=None):
 
         car = Car(name=car_name, linename=line.name)
         db.add(car)
-        for (sta, dtype), colid in station_colidx_map.items():
+        for sta, dtype, colid in station_colidx:
             if colid is None:
                 continue
             val = table.get_value(row=rowid, col=colid)

@@ -3,24 +3,24 @@
 
 from busmap import pdfutil, tablereader, preset_data_reader
 from busmap.datastruct import *
+from busmap import blobdb
 
 db = Database()
-
 PRESET_DATA_DIR = "./preset_data"
+
+blobstore = blobdb.BlobStore('./blob')
 
 # pdfutil.pdfutil_debug_enabled = True
 
-
-
+debug_pages = []
 
 def parse_kisarazu_shinagawa():
     pages = pdfutil.pdfxmlfile_to_pages("data/parsed-shinagawa.xml", original_pdf="data/shinagawa.pdf")
-
     page = pages[0]
+    debug_pages.append(page)
 
     dojyujitsu_text = page.search_text_contains("土休日").first()
     weekday_area = page.clipped(page.bounds.left_area_of(dojyujitsu_text.rect), inclusive=False, clip_name='平日')
-
 
     # 平日上りのパース
     kuradi = weekday_area.search_text_contains("下り").first()
@@ -34,18 +34,7 @@ def parse_kisarazu_shinagawa():
     table.decl_column(clipped_page.search_text_contains("袖ケ浦BT発").first().dmark())
     table.decl_column(clipped_page.search_text_contains("金田BT発").first().dmark())
     table.decl_column(clipped_page.search_text_contains("品川駅東口着").first().dmark())
-
-    cur = weekday_area.search_text_contains("上り").first()
-    count = 1
-    while True:
-        cand = weekday_area.search_text_contains(str(count), single_label_only=True)
-        vlabel = cand.nearest_from(cur)
-        if not vlabel:
-            break
-        table.decl_row(str(count), ypos=vlabel.center_pos.y)
-        cur = vlabel
-        count += 1
-
+    table.decl_sequential_rows(clipped_page.search_text_contains("上り").first(), range(1, 500))
     table.finish_layout()
 
     tablereader.table_to_fact(
@@ -55,8 +44,6 @@ def parse_kisarazu_shinagawa():
         line=db.get_line('高速バス木更津・品川線'),
         day_options=['weekday']
     )
-
-
 
     # 平日下りのパース
     clipped_page = weekday_area.clipped(weekday_area.bounds.right_area_of(kuradi.rect.left), inclusive=True, clip_name='下り')
@@ -69,37 +56,91 @@ def parse_kisarazu_shinagawa():
     table.decl_column(clipped_page.search_text_contains("袖ケ浦BT着").first().dmark())
     table.decl_column(clipped_page.search_text_contains("金田BT着").first().dmark())
     table.decl_column(clipped_page.search_text_contains("品川駅東口発").first().dmark())
-
-    cur = weekday_area.search_text_contains("上り").first()
-    count = 1
-    while True:
-        cand = weekday_area.search_text_contains(str(count), single_label_only=True)
-        vlabel = cand.nearest_from(cur)
-        if not vlabel:
-            break
-        table.decl_row(str(count), ypos=vlabel.center_pos.y)
-        cur = vlabel
-        count += 1
+    table.decl_sequential_rows(clipped_page.search_text_contains("下り").first(), range(1, 500))
 
     table.finish_layout()
 
-    print(tablereader.table_to_fact(
+    tablereader.table_to_fact(
         db,
         table,
         tablename="T2",
         line=db.get_line('高速バス木更津・品川線'),
         day_options=['weekday']
-    ))
-
+    )
 
     page.flush_debug_marks()
 
-    db.dump('tmp/dbdump.txt')
-    db.dump('www/db.js', format='jsonp', field_name='DB')
+
+
+def parse_kisarazu_haneda():
+
+    pages = pdfutil.pdfxmlfile_to_pages("data/parsed_kosoku-kisarazu-haneda.xml", original_pdf="data/kosoku-kisarazu-haneda.pdf")
+    page = pages[0]
+    debug_pages.append(page)
+
+    kuradi = page.search_text_contains("【下り】").first()
+    nobori = page.search_text_contains("【上り】").first()
+    noriba_goannai = page.search_text_contains("【のりばご案内】").first()
+
+    # 平日上りのパース
+    clipped_page = page.clipped(
+        page.bounds.left_area_of(kuradi.rect).bottom_area_of(nobori.rect).top_area_of(noriba_goannai.rect),
+        inclusive=False, clip_name='上り')
+    table = pdfutil.TableRecognizer(clipped_page)
+    table.decl_column(clipped_page.search_text_contains("便").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("会社").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("木更津駅").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("袖ヶ浦BT").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("金田BT").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("第1ターミナル").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("第2ターミナル").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("国際ターミナル").first().dmark())
+    table.decl_sequential_rows(clipped_page.search_text_contains("便").first(), range(1, 500))
+    table.finish_layout()
+
+    tablereader.table_to_fact(
+        db,
+        table,
+        tablename="T1",
+        line=db.get_line('高速バス木更津・羽田空港線'),
+        day_options=['weekday']
+    )
+
+    # 平日下りのパース
+    clipped_page = page.clipped(page.bounds.right_area_of(kuradi.rect.left).bottom_area_of(nobori.rect).top_area_of(noriba_goannai.rect), inclusive=False,
+                                clip_name='下り')
+    table = pdfutil.TableRecognizer(clipped_page)
+    table.decl_column(clipped_page.search_text_contains("便").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("会社").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("木更津駅").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("袖ヶ浦BT").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("金田BT").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("第1ターミナル").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("第2ターミナル").first().dmark())
+    table.decl_column(clipped_page.search_text_contains("国際ターミナル").first().dmark())
+    table.decl_sequential_rows(clipped_page.search_text_contains("便").first(), range(1, 500))
+    table.finish_layout()
+
+    tablereader.table_to_fact(
+        db,
+        table,
+        tablename="T2",
+        line=db.get_line('高速バス木更津・羽田空港線'),
+        day_options=['weekday']
+    )
 
 
 def main():
-    parse_kisarazu_shinagawa()
+    try:
+        parse_kisarazu_shinagawa()
+        parse_kisarazu_haneda()
+        db.dump('tmp/dbdump.txt')
+        db.dump('www/db.js', format='jsonp', field_name='DB')
+    finally:
+        print("Building debug pages...")
+        for p in debug_pages:
+            p.flush_debug_marks()
+
 
 if __name__ == '__main__':
     preset_data_reader.read_preset_files(db, PRESET_DATA_DIR)
