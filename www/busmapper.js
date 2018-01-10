@@ -5,12 +5,32 @@ let gCarMap = null;
 const gCars = {};
 let gAnimationTimer = null;
 
+
+const gIcons = {};
+gIcons["高速バス木更津・品川線"] = L.icon({
+    iconUrl: 'bus-small.png',
+    // shadowUrl: 'leaf-shadow.png',
+    iconSize:     [20, 20], // size of the icon
+    // shadowSize:   [50, 64], // size of the shadow
+    iconAnchor:   [10, 18], // point of the icon which will correspond to marker's location
+    // shadowAnchor: [4, 62],  // the same for the shadow
+    popupAnchor:  [0, -18] // point from which the popup should open relative to the iconAnchor
+});
+
+const gDefaultIcon = gIcons["高速バス木更津・品川線"];
+
+
+function dig02(dig){
+    const d = parseInt(dig);
+    return (dig < 10 ? '0':'') + d;
+}
+
 function timeSecondsToTimeStr(ts) {
     ts = parseInt(ts);
     const sec = ts % 60;
     const min = Math.floor(ts / 60) % 60;
     const hours = Math.floor(ts / 3600);
-    return "" + hours + ":" + min;
+    return "" + hours + ":" + dig02(min);
 }
 
 
@@ -59,7 +79,16 @@ function updateCarsWithTime(ts) {
         const p = (ts - lastEvt.time)/(nextEvt.time - lastEvt.time);
         const curPos = interpolation2(lastEvt.pos, nextEvt.pos, p);
         if(carMarker.marker === null){
-            carMarker.marker = L.marker(curPos).addTo(gCarMap);
+            let carIcon = gDefaultIcon;
+            if(carData.line in gIcons){
+                carIcon = gIcons[carData.line];
+            }
+            carMarker.marker = L.marker(curPos, {
+                icon: carIcon,
+                title: "タイトル:" + carData.name
+            });
+            carMarker.marker.bindPopup(""+carData.name);
+            carMarker.marker.addTo(gCarMap);
         }else{
             carMarker.marker.setLatLng(curPos);
         }
@@ -81,6 +110,8 @@ function increseTime(tv){
     updateCarsWithTime(newVal);
 }
 
+
+
 function main(){
 
     gCarMap = L.map('mapbox').setView([35.38143, 139.92711], 12);
@@ -99,7 +130,9 @@ function main(){
     ).addTo(gCarMap);
 
 
-    const marker = L.marker([36.3219088, 139.0032936]).addTo(gCarMap);
+
+
+
 
     $('.timeslider').on('change', ()=>{
         const tv = $('.timeslider').val();
@@ -116,6 +149,16 @@ function main(){
         }, 10);
     });
 
+    $('.play_with_speed_btn').on('click', (e)=>{
+        stopAnimationTimer();
+        const speed = $(e.currentTarget).attr('speed');
+        const timerInterval = $(e.currentTarget).attr('interval');
+
+        gAnimationTimer = setInterval(()=>{
+            increseTime(parseInt(speed));
+        }, timerInterval);
+    });
+
     $('.play10_btn').on('click', ()=>{
         stopAnimationTimer();
         gAnimationTimer = setInterval(()=>{
@@ -126,6 +169,35 @@ function main(){
     $('.stop_btn').on('click', ()=>{
         stopAnimationTimer();
     });
+
+
+    // Route Builder
+    let gRouteMarkers = [];
+    gCarMap.on('contextmenu',function(e){
+        const $line = $('<div class="point"></div>');
+        $line.text('   - [' + e.latlng.lat + ', ' + e.latlng.lng + ']');
+        $('.route-data').append($line);
+        const marker = L.marker(e.latlng).addTo(gCarMap);
+        gRouteMarkers.push(marker);
+    });
+
+    $('.route-remove-one-button').on('click', ()=>{
+        if(gRouteMarkers.length == 0){
+            return;
+        }
+        gCarMap.removeLayer(gRouteMarkers.pop());
+        $('.route-data .point:last').remove();
+
+    });
+
+    $('.route-clear-button').on('click', ()=>{
+        for(let marker of gRouteMarkers){
+            gCarMap.removeLayer(marker);
+        }
+        gRouteMarkers = [];
+        $('.route-data .point').remove();
+    });
+
 }
 
 

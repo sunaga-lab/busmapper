@@ -4,9 +4,20 @@ import json
 import yaml
 import re
 from math import pow, sqrt
+import random
+
+import zenhan
 
 STATION_WP_WAIT_TIME = 30
-import zenhan
+DAY_SPLIT = 3 * 60 * 60 # 3:00区切り
+
+def random_tmp_fn(suffix = ""):
+    ri = random.randint(10000000,99999999)
+    return "tmp/" + str(ri) + suffix
+
+
+
+
 
 class Database:
 
@@ -48,11 +59,14 @@ class Database:
         return None
 
     def get_line(self, name):
+        if name not in self.lines:
+            raise Exception('No station: ' + str(name))
         return self.lines.get(name)
 
     def get_station(self, name):
         if name not in self.stations:
-            raise Exception("Error: no such station:" + name)
+            print(self.stations)
+            raise Exception("Error: no such station: '" + name + "'")
 
         return self.stations.get(name)
 
@@ -180,7 +194,12 @@ def normalize_time(ts):
 
 
 def time_to_seconds(hours=0, minutes=0, seconds=0):
-    return int((int(hours)*60+int(minutes))*60 + int(seconds))
+    result = int((int(hours)*60+int(minutes))*60 + int(seconds))
+    # 日付区切りより前だったら24時以降とみなす
+    if result < DAY_SPLIT:
+        result += 24*60*60
+    return result
+
 
 def time_to_timestr(*idx, **kw):
     all_seconds = time_to_seconds(*idx, **kw)

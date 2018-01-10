@@ -5,17 +5,13 @@ import random
 from PIL import Image, ImageDraw, ImageFont
 import numbers
 import xml.etree.ElementTree as ET
-from .datastruct import normalize_text
+from .datastruct import *
 
 import math
 from . import tablereader
 
 
 pdfutil_debug_enabled = False
-
-def random_tmp_fn(suffix = ""):
-    ri = random.randint(10000000,99999999)
-    return "tmp/" + str(ri) + suffix
 
 
 
@@ -650,7 +646,10 @@ def pdfxmlfile_to_pages(fn, original_pdf=None):
     xmltext = open(fn, 'rb').read()
     return pdfxml_to_pages(xmltext, original_pdf=original_pdf)
 
-class TableRecognizer(tablereader.Table):
+
+
+
+class TableRecognizer(tablereader.TableGenerator):
 
     def __init__(self, page):
         self.page = page
@@ -692,7 +691,7 @@ class TableRecognizer(tablereader.Table):
             self.decl_row(str(item), ypos=vlabel.center_pos.y)
             cur = vlabel
 
-    def finish_layout(self):
+    def generate_table(self):
         self.columns.sort(key=lambda item:item['x'])
         self.rows.sort(key=lambda item:-item['y'])
 
@@ -708,6 +707,31 @@ class TableRecognizer(tablereader.Table):
 
         self.put_dmarks()
 
+        tdata = []
+        for row in self.rows:
+            tdata_line = []
+            for col in self.columns:
+                tdata_line.append(self.get_cell_value_from_rowcol(col=col, row=row))
+            tdata.append(tdata_line)
+
+        return tablereader.Table.from_data(
+            table_data=tdata,
+            columns=[c['label'] for c in self.columns],
+            rows=[r['label'] for r in self.rows]
+        )
+
+    def get_cell_value_from_rowcol(self, col, row):
+        if col is None or row is None:
+            return None
+
+        cell_rect = Rectangle(left=col['x_min'], right=col['x_max'], top=row['y_max'], bottom=row['y_min'])
+        clipped = self.page.clipped(cell_rect)
+        tl = clipped.nearest_textline_from(col['x'], row['y'])
+        if not tl:
+            return None
+        else:
+            return tl.normalized_text
+
     def put_dmarks(self):
         pbnd = self.page.bounds
 
@@ -722,46 +746,4 @@ class TableRecognizer(tablereader.Table):
             self.page.dmark_line('main', Point(pbnd.left, row['y']), Point(pbnd.right, row['y']))
             self.page.dmark_line('sub', Point(pbnd.left, row['y_max']), Point(pbnd.right, row['y_max']))
             self.page.dmark_text('main', Point(pbnd.left, row['y']), "ROW:" + row['label'])
-
-    def num_rows(self):
-        return len(self.rows)
-
-    def num_columns(self):
-        return len(self.columns)
-
-    def col_index(self, colname):
-        for coldt in self.columns:
-            if isinstance(colname, str) and coldt['label'] == normalize_text(colname):
-                return coldt['col_id']
-        return None
-
-    def row_index(self, rowname):
-        for rowdt in self.rows:
-            if isinstance(rowname, str) and rowdt['label'] == normalize_text(rowname):
-                return rowdt['row_id']
-        return None
-
-
-    def get_value_from_index(self, colidx, rowidx):
-        selcol = None
-        selrow = None
-        for coldt in self.columns:
-            if coldt['col_id'] == colidx:
-                selcol = coldt
-                break
-        for rowdt in self.rows:
-            if rowdt['row_id'] == rowidx:
-                selrow = rowdt
-                break
-
-        if selcol is None or selrow is None:
-            return None
-
-        cell_rect = Rectangle(left=selcol['x_min'], right=selcol['x_max'], top=selrow['y_max'], bottom=selrow['y_min'])
-        clipped = self.page.clipped(cell_rect)
-        tl = clipped.nearest_textline_from(selcol['x'],selrow['y'])
-        if not tl:
-            return None
-        else:
-            return tl.normalized_text
 
