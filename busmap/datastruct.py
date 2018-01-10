@@ -6,6 +6,7 @@ import re
 from math import pow, sqrt
 
 STATION_WP_WAIT_TIME = 30
+import zenhan
 
 class Database:
 
@@ -56,7 +57,7 @@ class Database:
         return self.stations.get(name)
 
 
-    def dump(self, fn, format='yaml', field_name=None):
+    def dump(self, fn, format='yaml', field_name=None, for_debug=False):
         data = {
             'stations': [sta.ddump(self) for sta in self.stations.values()],
             'lines': [line.ddump(self) for line in self.lines.values()],
@@ -67,7 +68,7 @@ class Database:
             if format == 'yaml':
                 yaml.dump(data, f, indent=2, allow_unicode=True)
             elif format == 'json':
-                json.dump(data, f, indent=2)
+                json.dump(data, f, indent=2, ensure_ascii=not for_debug)
             elif format == 'jsonp':
                 datajson = json.dumps(data, indent=2)
                 f.write("{0} = {1};".format(field_name, datajson))
@@ -275,3 +276,17 @@ def dict_to_dataobj(data):
         return Path(**data)
 
     raise Exception('Unknown data-type:' + str(dtype))
+
+
+normalize_replace_map = [
+    [' ', ''],
+    ['　', '']
+]
+
+def normalize_text(text):
+    text = text.strip()
+    text = zenhan.z2h(text, mode=7)
+    for a, b in normalize_replace_map:
+        text = text.replace(a,b)
+    return text
+

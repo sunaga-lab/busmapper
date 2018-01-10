@@ -3,11 +3,12 @@
 import subprocess
 import random
 from PIL import Image, ImageDraw, ImageFont
-import zenhan
 import numbers
 import xml.etree.ElementTree as ET
+from .datastruct import normalize_text
 
 import math
+from . import tablereader
 
 
 pdfutil_debug_enabled = False
@@ -251,18 +252,6 @@ class Point:
         return self.coords
 
 
-
-normalize_replace_map = [
-    [' ', ''],
-    ['　', '']
-]
-
-def normalize_text(text):
-    text = text.strip()
-    text = zenhan.z2h(text, mode=7)
-    for a, b in normalize_replace_map:
-        text = text.replace(a,b)
-    return text
 
 
 class AbstractTextLine:
@@ -661,7 +650,7 @@ def pdfxmlfile_to_pages(fn, original_pdf=None):
     xmltext = open(fn, 'rb').read()
     return pdfxml_to_pages(xmltext, original_pdf=original_pdf)
 
-class TableRecognizer:
+class TableRecognizer(tablereader.Table):
 
     def __init__(self, page):
         self.page = page
@@ -743,7 +732,6 @@ class TableRecognizer:
     def col_index(self, colname):
         for coldt in self.columns:
             if isinstance(colname, str) and coldt['label'] == normalize_text(colname):
-                print("col found:", colname, "in colmap:", coldt)
                 return coldt['col_id']
         return None
 
@@ -753,15 +741,16 @@ class TableRecognizer:
                 return rowdt['row_id']
         return None
 
-    def get_value(self, col, row):
+
+    def get_value_from_index(self, colidx, rowidx):
         selcol = None
         selrow = None
         for coldt in self.columns:
-            if (isinstance(col, str) and coldt['label'] == normalize_text(col)) or (isinstance(col, int) and coldt['col_id'] == col):
+            if coldt['col_id'] == colidx:
                 selcol = coldt
                 break
         for rowdt in self.rows:
-            if (isinstance(row, str) and rowdt['label'] == normalize_text(row)) or (isinstance(row, int) and rowdt['row_id'] == row):
+            if rowdt['row_id'] == rowidx:
                 selrow = rowdt
                 break
 

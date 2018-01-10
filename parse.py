@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from busmap import pdfutil, tablereader, preset_data_reader
+from busmap import pdfutil, htmlutil, tablereader, preset_data_reader
 from busmap.datastruct import *
 from busmap import blobdb
 
@@ -130,11 +130,43 @@ def parse_kisarazu_haneda():
     )
 
 
+def parse_kisarazu_kawasaki():
+    print("Reading http://www.keikyu-bus.co.jp/highway/k-sodegaura/...")
+    reader = htmlutil.HTMLReader("http://www.keikyu-bus.co.jp/highway/k-sodegaura/")
+
+    print("Parsing tables [袖ヶ浦バスターミナル・木更津駅ゆき]...")
+    tbls = reader.make_table_readers("//*[text()='袖ヶ浦バスターミナル・木更津駅ゆき']/following::table")
+    table = tbls[0].concat_vert_with(tbls[1])
+    print("Building facts...")
+    tablereader.table_to_fact(
+        db,
+        table,
+        tablename="T1",
+        line=db.get_line('高速バス木更津・川崎線'),
+        day_options=['weekday']
+    )
+
+    print("Parsing tables [川崎駅ゆき]...")
+    tbls = reader.make_table_readers("//*[text()='川崎駅ゆき']/following::table")
+    table = tbls[0].concat_vert_with(tbls[1])
+    print("Building facts...")
+    tablereader.table_to_fact(
+        db,
+        table,
+        tablename="T2",
+        line=db.get_line('高速バス木更津・川崎線'),
+        day_options=['weekday']
+    )
+
+
+
 def main():
     try:
         parse_kisarazu_shinagawa()
         parse_kisarazu_haneda()
-        db.dump('tmp/dbdump.txt')
+        parse_kisarazu_kawasaki()
+
+        db.dump('tmp/dbdump.txt', format='json', for_debug=True)
         db.dump('www/db.js', format='jsonp', field_name='DB')
     finally:
         print("Building debug pages...")

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
 from busmap.datastruct import *
-from busmap.pdfutil import normalize_text
 
 class Table:
 
@@ -14,14 +13,19 @@ class Table:
     def num_columns(self):
         raise NotImplementedError()
 
-    def get_value(self, col, row):
-        raise NotImplementedError()
-
     def col_index(self, colname):
         raise NotImplementedError()
 
     def row_index(self, rowname):
         raise NotImplementedError()
+
+    def get_value_from_index(self, colidx, rowidx):
+        raise NotImplementedError()
+
+    def get_value(self, col, row):
+        colidx = col if isinstance(col, int) else self.col_index(col)
+        rowidx = row if isinstance(row, int) else self.row_index(row)
+        return self.get_value_from_index(colidx, rowidx)
 
 
 def table_to_text(table, divider=','):
