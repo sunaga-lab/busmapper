@@ -7,17 +7,23 @@ let gAnimationTimer = null;
 
 
 const gIcons = {};
-gIcons["高速バス木更津・品川線"] = L.icon({
-    iconUrl: 'bus-small.png',
-    // shadowUrl: 'leaf-shadow.png',
-    iconSize:     [20, 20], // size of the icon
-    // shadowSize:   [50, 64], // size of the shadow
-    iconAnchor:   [10, 18], // point of the icon which will correspond to marker's location
-    // shadowAnchor: [4, 62],  // the same for the shadow
-    popupAnchor:  [0, -18] // point from which the popup should open relative to the iconAnchor
-});
+const busIconWithColor = (color)=> L.icon({
+        iconUrl: 'bus-small-'+color+'.png',
+        // shadowUrl: 'leaf-shadow.png',
+        iconSize:     [20, 20], // size of the icon
+        // shadowSize:   [50, 64], // size of the shadow
+        iconAnchor:   [10, 18], // point of the icon which will correspond to marker's location
+        // shadowAnchor: [4, 62],  // the same for the shadow
+        popupAnchor:  [0, -18] // point from which the popup should open relative to the iconAnchor
+    });
 
-const gDefaultIcon = gIcons["高速バス木更津・品川線"];
+gIcons["高速バス木更津・品川線"] = busIconWithColor('red');
+gIcons["高速バス木更津・東京線"] = busIconWithColor('yellow');
+gIcons["高速バス木更津・新宿線"] = busIconWithColor('blue');
+gIcons["高速バス木更津・川崎線"] = busIconWithColor('skyblue');
+gIcons["高速バス木更津・羽田空港線"] = busIconWithColor('green');
+
+const gDefaultIcon = busIconWithColor('purple');
 
 
 function dig02(dig){
