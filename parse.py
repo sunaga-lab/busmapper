@@ -214,8 +214,6 @@ def parse_kisarazu_tokyo():
 
 
 
-
-
 def main():
     try:
         parse_kisarazu_shinagawa()
