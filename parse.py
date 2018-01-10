@@ -10,9 +10,8 @@ PRESET_DATA_DIR = "./preset_data"
 
 blobstore = blobdb.BlobStore('./blob')
 
-pdfutil.pdfutil_debug_enabled = True
-
-tablereader.tablereader_debug_enabled = True
+pdfutil.pdfutil_debug_enabled = False
+tablereader.tablereader_debug_enabled = False
 
 debug_pages = []
 
