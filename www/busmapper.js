@@ -61,20 +61,27 @@ function interpolation2(a, b, p){
     ];
 }
 
+
+g_last_ts = null;
 function updateCarsWithTime(ts) {
     ts = parseInt(ts);
 
+    const canSkip = (g_last_ts !== null && g_last_ts <= ts);
     for(let carData of DB.cars){
         const carMarker = gCars[carData.name];
         let lastEvt = null;
         let nextEvt = null;
-        for(let evt of carData.events){
+        let i = canSkip && carMarker.lastEventIndex ? Math.max(carMarker.lastEventIndex-1, 0) : 0;
+        for(; i < carData.events.length; i++){
+            const evt = carData.events[i];
             if(evt.time > ts){
                 nextEvt = evt;
                 break;
             }
             lastEvt = evt;
         }
+        carMarker.lastEventIndex = i;
+
         if(lastEvt === null || nextEvt === null){
             if(carMarker.marker !== null){
                 gCarMap.removeLayer(carMarker.marker);
@@ -123,7 +130,8 @@ function main(){
     gCarMap = L.map('mapbox').setView([35.38143, 139.92711], 12);
     for(let car of DB.cars) {
         gCars[car.name] = {
-            marker: null
+            marker: null,
+            lastEventIndex: -1
         };
     }
 

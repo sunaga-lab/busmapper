@@ -21,6 +21,22 @@ LONGITUDE_TO_KM_AROUND_TOKYO = 91.159
 DEFAULT_SPEED_VALUE = 60
 
 
+normalize_replace_map = [
+    [' ', ''],
+    ['　', ''],
+    ['ヶ', 'ｹ']
+]
+
+def normalize_text(text):
+    text = text.strip()
+    text = zenhan.z2h(text, mode=7)
+    for a, b in normalize_replace_map:
+        text = text.replace(a,b)
+    return text
+
+def normalized_eq(a, b):
+    return normalize_text(a) == normalize_text(b)
+
 class Database:
 
     def __init__(self):
@@ -50,9 +66,9 @@ class Database:
         path = None
         rev_path = None
         for p in self.paths:
-            if p.from_sta == from_sta and p.to_sta == to_sta:
+            if normalized_eq(p.from_sta, from_sta) and normalized_eq(p.to_sta, to_sta):
                 return p
-            if p.from_sta == to_sta and p.to_sta == from_sta:
+            if normalized_eq(p.from_sta, to_sta) and normalized_eq(p.to_sta, from_sta):
                 rev_path = p
 
         if rev_path is not None:
@@ -270,12 +286,25 @@ class ReversedPath:
 
 class Path:
 
-    def __init__(self, points, from_sta=None, to_sta=None, name=None, point_time=None, **kw):
+    def __init__(self, points=None, from_sta=None, to_sta=None, name=None, via=None, point_time=None, **kw):
         self.from_sta = from_sta or kw.get('from')
         self.to_sta = to_sta or kw.get('to')
+
+        if 'fromto' in kw:
+            self.from_sta, self.to_sta = kw['fromto']
+
         self.name = name
 
-        self.points = points
+        self.points = points or []
+        if via:
+            if isinstance(via, str):
+                via = [via]
+            via_points = [self.from_sta] + via + [self.to_sta]
+            self.points = [
+                ['include', via_points[i-1], via_points[i]]
+                for i in range(1, len(via_points))
+            ]
+
         self.points_with_speeds = None
         self.points_included = {}
         self.point_time = {}
@@ -318,7 +347,10 @@ class Path:
                 if reverse:
                     to_p, from_p = from_p, to_p
                 including_path = db.get_path(from_p, to_p)
-                result_path.extend(including_path.get_points_included(db))
+                if not including_path:
+                    print("Route {0} -> {1} does not exists.".format(from_p, to_p))
+                else:
+                    result_path.extend(including_path.get_points_included(db))
             else:
                 result_path.append(p)
         self.points_included[reverse] = result_path
@@ -384,16 +416,4 @@ def dict_to_dataobj(data):
 
     raise Exception('Unknown data-type:' + str(dtype))
 
-
-normalize_replace_map = [
-    [' ', ''],
-    ['　', '']
-]
-
-def normalize_text(text):
-    text = text.strip()
-    text = zenhan.z2h(text, mode=7)
-    for a, b in normalize_replace_map:
-        text = text.replace(a,b)
-    return text
 

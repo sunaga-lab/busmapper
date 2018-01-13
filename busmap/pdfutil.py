@@ -669,6 +669,7 @@ class TableRecognizer(tablereader.TableGenerator):
             'label': label,
             'x': xpos
         })
+        return self
 
     def decl_row(self, label, ypos=None):
         if isinstance(label, AbstractTextLine):
@@ -680,6 +681,7 @@ class TableRecognizer(tablereader.TableGenerator):
             'label': label,
             'y': ypos
         })
+        return self
 
     def decl_sequential_rows(self, start_pos, sequence):
         cur = start_pos
@@ -690,6 +692,12 @@ class TableRecognizer(tablereader.TableGenerator):
                 return
             self.decl_row(str(item), ypos=vlabel.center_pos.y)
             cur = vlabel
+        return self
+
+    def gen_with_table_attrs(self, **attrs):
+        table = self.generate_table()
+        return table.with_table_atts(**attrs)
+
 
     def generate_table(self):
         self.columns.sort(key=lambda item:item['x'])

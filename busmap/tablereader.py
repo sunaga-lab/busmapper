@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 from busmap.datastruct import *
-
+import json
 
 tablereader_debug_enabled = False
 
@@ -9,6 +9,34 @@ class TableGenerator:
 
     def generate_table(self):
         raise NotImplementedError()
+
+
+class TableList:
+
+    def __init__(self, tables):
+        self.tables = tables
+
+    def __getitem__(self, item):
+        return self.tables[item]
+
+    def save(self, fn):
+        saving_data = {
+            'format': 'table_list',
+            'body': [t.to_dict() for t in self.tables]
+        }
+        with open(fn, 'w') as fp:
+            json.dump(saving_data, fp)
+
+    @classmethod
+    def load(cls, fn):
+        with open(fn, 'r') as fp:
+            loading_data = json.load(fp)
+            if loading_data['format'] == 'table_list':
+                return TableList([Table.from_dict(t_dict) for t_dict in loading_data['body']])
+            elif loading_data['format'] == 'table':
+                return TableList([Table.from_dict(loading_data['body'])])
+            else:
+                raise Exception()
 
 class Table:
 
@@ -19,6 +47,34 @@ class Table:
         self.table_data = None
         self.columns = None
         self.rows = None
+        self.table_attrs = {}
+
+    def save(self, fn):
+        saving_data = {
+            'format': 'table',
+            'body': self.to_dict()
+        }
+        with open(fn, 'w') as fp:
+            json.dump(saving_data, fp)
+
+    @classmethod
+    def load(cls, fn):
+        with open(fn, 'r') as fp:
+            loading_data = json.load(fp)
+            assert loading_data['format'] == 'table'
+            return Table.from_dict(loading_data['body'])
+
+    def to_dict(self):
+        return {
+            'table_data': self.table_data,
+            'columns': self.columns,
+            'rows': self.rows,
+            'table_attrs': self.table_attrs
+        }
+
+    @classmethod
+    def from_dict(cls, d):
+        return cls.from_data(**d)
 
     @staticmethod
     def from_data(*idx, **kw):
@@ -26,7 +82,7 @@ class Table:
         t.set_data(*idx, **kw)
         return t
 
-    def set_data(self, table_data, columns=None, rows=None, head_column_index=0, head_row_index=0):
+    def set_data(self, table_data, columns=None, rows=None, head_column_index=0, head_row_index=0, table_attrs=None):
         self.table_data = table_data
         if columns is None:
             self.columns = self.table_data[head_row_index]
@@ -36,6 +92,7 @@ class Table:
             self.rows = [(row[head_column_index] if len(row) > 0 else None) for row in self.table_data]
         else:
             self.rows = rows
+        self.table_attrs = table_attrs or {}
 
     @classmethod
     def concat_vert(cls, table1, table2):
@@ -92,7 +149,15 @@ class Table:
         result.extend(','.join(line) for line in self.table_data)
         return '\n'.join(result)
 
+    def set_table_attr(self, name, value):
+        self.table_attrs[name] = value
 
+    def get_table_attr(self, name, default_value=None):
+        return self.table_attrs.get(name, default_value)
+
+    def with_table_atts(self, **attrs):
+        self.table_attrs.update(**attrs)
+        return self
 
 def table_to_text(table, divider=','):
     result = []

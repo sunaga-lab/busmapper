@@ -26,7 +26,7 @@ class HTMLReader:
         return readers[0]
 
     def make_table_readers(self, xpath, **kw):
-        return [WebBrowserTableReader.from_table_elem(elem, **kw) for elem in self.driver.find_elements_by_xpath(xpath)]
+        return tablereader.TableList([WebBrowserTableReader.from_table_elem(elem, **kw) for elem in self.driver.find_elements_by_xpath(xpath)])
 
 
 def striptags(text):
