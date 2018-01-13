@@ -216,14 +216,18 @@ def parse_kisarazu_tokyo():
 
 def main():
     try:
-        parse_kisarazu_shinagawa()
+        preset_data_reader.read_preset_files(db, PRESET_DATA_DIR)
+        #parse_kisarazu_shinagawa()
         parse_kisarazu_haneda()
-        parse_kisarazu_kawasaki()
-        parse_kisarazu_shinjuku()
-        parse_kisarazu_tokyo()
+        #parse_kisarazu_kawasaki()
+        #parse_kisarazu_shinjuku()
+        #parse_kisarazu_tokyo()
 
         db.dump('tmp/dbdump.txt', format='json', for_debug=True)
         db.dump('www/db.js', format='jsonp', field_name='DB')
+        db.dump('www/db.json', format='json')
+        db.dump('tmp/db_debug.txt', format='debug_text')
+
     finally:
         print("Building debug pages...")
         for p in debug_pages:
@@ -231,7 +235,6 @@ def main():
 
 
 if __name__ == '__main__':
-    preset_data_reader.read_preset_files(db, PRESET_DATA_DIR)
     main()
 
 

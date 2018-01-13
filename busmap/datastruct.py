@@ -16,7 +16,9 @@ def random_tmp_fn(suffix = ""):
     return "tmp/" + str(ri) + suffix
 
 
-
+LATITUDE_TO_KM_AROUND_TOKYO = 111.263
+LONGITUDE_TO_KM_AROUND_TOKYO = 91.159
+DEFAULT_SPEED_VALUE = 60
 
 
 class Database:
@@ -43,7 +45,7 @@ class Database:
     def get_path(self, from_sta, to_sta):
         """
         正方向のパスを探す。
-        見つからなかった場合はリバースルートを作成　
+        見つからなかった場合はリバースルートを作成。
         """
         path = None
         rev_path = None
@@ -70,7 +72,6 @@ class Database:
 
         return self.stations.get(name)
 
-
     def dump(self, fn, format='yaml', field_name=None, for_debug=False):
         data = {
             'stations': [sta.ddump(self) for sta in self.stations.values()],
@@ -79,13 +80,21 @@ class Database:
             'paths': [path.ddump(self) for path in self.paths]
         }
         with open(fn, 'w') as f:
-            if format == 'yaml':
+            if format == 'debug_text':
+                f.write(self.debug_text())
+            elif format == 'yaml':
                 yaml.dump(data, f, indent=2, allow_unicode=True)
             elif format == 'json':
                 json.dump(data, f, indent=2, ensure_ascii=not for_debug)
             elif format == 'jsonp':
                 datajson = json.dumps(data, indent=2)
                 f.write("{0} = {1};".format(field_name, datajson))
+
+    def debug_text(self):
+        result = []
+        result.extend([path.debug_text(self) for path in self.paths])
+        return '\n'.join(result)
+
 
 
 class Station:
@@ -160,14 +169,15 @@ class Car:
             if not path:
                 result.append(evt_to)
                 continue
-
+            path_point_time = path.get_point_time(db)
+            path_points = path.get_points_included(db)
             all_dur = evt_to.time - evt_from.time - STATION_WP_WAIT_TIME * 2
-            for i in range(0, len(path.points)):
+            for i in range(0, len(path_points)):
                 result.append(CarEvent(
-                    time=int(evt_from.time + all_dur*path.point_time[i] + STATION_WP_WAIT_TIME),
+                    time=int(evt_from.time + all_dur*path_point_time[i] + STATION_WP_WAIT_TIME),
                     event='v',
                     day_options=evt_from.day_options,
-                    pos=path.points[i]
+                    pos=path_points[i]
                 ))
             result.append(evt_to)
         return result
@@ -239,47 +249,125 @@ def sq(v):
     return v*v
 
 
-class Path:
+class ReversedPath:
 
-    def __init__(self, points, from_sta=None, to_sta=None, point_time=None, **kw):
-        self.points = points
-        self.from_sta = from_sta or kw.get('from')
-        self.to_sta = to_sta or kw.get('to')
-        self.point_time = point_time or []
-        if not self.point_time:
-            self.calc_point_time()
+    def __init__(self, orig_path):
+        self.orig_path = orig_path
 
     def reversed_path(self):
-        return Path(
-                points=list(reversed(self.points)),
-                from_sta=self.to_sta,
-                to_sta=self.from_sta,
-                point_time=[(1.0 - t) for t in reversed(self.point_time)]
-            )
+        return self.orig_path
 
-    def calc_point_time(self):
-        self.point_time = [0]
+    def get_points_included(self, db, reverse=False):
+        return self.orig_path.get_points_included(db, not reverse)
+
+
+    def get_point_time(self, db, reverse=False):
+        return self.orig_path.get_point_time(db, not reverse)
+
+    def debug_text(self, db):
+        return self.orig_path.debug_text(db)
+
+
+class Path:
+
+    def __init__(self, points, from_sta=None, to_sta=None, name=None, point_time=None, **kw):
+        self.from_sta = from_sta or kw.get('from')
+        self.to_sta = to_sta or kw.get('to')
+        self.name = name
+
+        self.points = points
+        self.points_with_speeds = None
+        self.points_included = {}
+        self.point_time = {}
+
+
+    def reversed_path(self):
+        return ReversedPath(self)
+
+
+    def get_points_with_speeds(self, reverse=False):
+        if not self.points_with_speeds:
+            curspeed = None
+            self.points_with_speeds = []
+            for p in self.points:
+                if not p:
+                    continue
+                if p[0] == 'include':
+                    self.points_with_speeds.append(p)
+                elif len(p) == 2:
+                    self.points_with_speeds.append(p + [curspeed, curspeed])
+                elif len(p) == 3:
+                    self.points_with_speeds.append([p[0], p[1], curspeed, p[2]])
+                    curspeed = p[2]
+
+        if reverse:
+            return [(p if len(p) < 4 else ([p[0], p[1], p[3], p[2]] + p[4:])) for p in reversed(self.points_with_speeds)]
+        else:
+            return self.points_with_speeds
+
+
+    def get_points_included(self, db, reverse=False):
+        if self.points_included.get(reverse):
+            return self.points_included[reverse]
+
+        result_path = []
+        for p in self.get_points_with_speeds(reverse):
+            if p[0] == 'include' and len(p) >= 3:
+                from_p = p[1]
+                to_p = p[2]
+                if reverse:
+                    to_p, from_p = from_p, to_p
+                including_path = db.get_path(from_p, to_p)
+                result_path.extend(including_path.get_points_included(db))
+            else:
+                result_path.append(p)
+        self.points_included[reverse] = result_path
+        return result_path
+
+
+    def get_point_time(self, db, reverse=False):
+        if self.point_time.get(reverse):
+            return self.point_time[reverse]
+
+        points = self.get_points_included(db, reverse=reverse)
+
+        point_time = [0]
         point_dur = [0]
-
-        for i in range(1, len(self.points)):
-            p0 = self.points[i-1]
-            p = self.points[i]
-            point_dur.append(sqrt(sq(p[0] - p0[0]) + sq(p[1] - p0[1])))
+        for i in range(1, len(points)):
+            p0 = points[i-1]
+            p = points[i]
+            speed = p0[3] or DEFAULT_SPEED_VALUE
+            # 東京付近での大体のkm
+            edge_len = sqrt(sq((p[0] - p0[0]) * LATITUDE_TO_KM_AROUND_TOKYO) + sq((p[1] - p0[1]) * LONGITUDE_TO_KM_AROUND_TOKYO))
+            point_dur.append(edge_len / speed)
 
         all_dur = sum(point_dur)
 
-        for i in range(1, len(self.points)):
-            self.point_time.append(
-                self.point_time[i - 1] + (point_dur[i])/all_dur
+        for i in range(1, len(points)):
+            point_time.append(
+                point_time[i - 1] + (point_dur[i])/all_dur
             )
-            if self.point_time[-1] >= 1.0:
-                self.point_time[-1] = 1.0
+            if point_time[-1] >= 1.0:
+                point_time[-1] = 1.0
+        self.point_time[reverse] = point_time
+        return point_time
+
+    def debug_text(self, db):
+        result = ["[ROUTE from:{0} to:{1}".format(self.from_sta, self.to_sta)]
+        for p, pt in zip(self.get_points_included(db), self.get_point_time(db)):
+            result.append("- [{0}, {1}] spd={2}->{3} : w:{4}".format(p[0], p[1], p[2], p[3], pt))
+
+        result.append("(reverse)")
+        for p, pt in zip(self.get_points_included(db, reverse=True), self.get_point_time(db, reverse=True)):
+            result.append("- [{0}, {1}] spd={2}->{3} : w:{4}".format(p[0], p[1], p[2], p[3], pt))
+        return '\n'.join(result)
 
     def ddump(self, db):
         return {
             'from': self.from_sta,
             'to': self.to_sta,
             'points': self.points,
+            'points_included': self.points_included,
             'point_time': self.point_time,
         }
 

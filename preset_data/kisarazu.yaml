@@ -1,4 +1,6 @@
 
+- t: options
+  disabled: True
 
 # 木更津市
 - t: station
