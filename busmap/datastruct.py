@@ -3,10 +3,11 @@
 import json
 import yaml
 import re
-from math import pow, sqrt
+from math import pow, sqrt, floor
 import random
-
 import zenhan
+import sys
+
 
 STATION_WP_WAIT_TIME = 30
 DAY_SPLIT = 3 * 60 * 60 # 3:00区切り
@@ -45,7 +46,11 @@ class Database:
         self.cars = {}
         self.paths = []
 
+        self.dumped_data = None
+        self.shown_errors = set()
+
     def add(self, obj):
+        self.dumped_data = None
         if isinstance(obj, Line):
             self.lines[obj.name] = obj
         elif isinstance(obj, Station):
@@ -89,21 +94,22 @@ class Database:
         return self.stations.get(name)
 
     def dump(self, fn, format='yaml', field_name=None, for_debug=False):
-        data = {
-            'stations': [sta.ddump(self) for sta in self.stations.values()],
-            'lines': [line.ddump(self) for line in self.lines.values()],
-            'cars': [car.ddump(self) for car in self.cars.values()],
-            'paths': [path.ddump(self) for path in self.paths]
-        }
+        if not self.dumped_data:
+            self.dumped_data = {
+                'stations': [sta.ddump(self) for sta in self.stations.values()],
+                'lines': [line.ddump(self) for line in self.lines.values()],
+                'cars': [car.ddump(self) for car in self.cars.values()],
+                'paths': [path.ddump(self) for path in self.paths]
+            }
         with open(fn, 'w') as f:
             if format == 'debug_text':
                 f.write(self.debug_text())
             elif format == 'yaml':
-                yaml.dump(data, f, indent=2, allow_unicode=True)
+                yaml.dump(self.dumped_data, f, indent=2, allow_unicode=True)
             elif format == 'json':
-                json.dump(data, f, indent=2, ensure_ascii=not for_debug)
+                json.dump(self.dumped_data, f, indent=2, ensure_ascii=not for_debug)
             elif format == 'jsonp':
-                datajson = json.dumps(data, indent=2)
+                datajson = json.dumps(self.dumped_data, indent=2)
                 f.write("{0} = {1};".format(field_name, datajson))
 
     def debug_text(self):
@@ -112,6 +118,11 @@ class Database:
         return '\n'.join(result)
 
 
+    def error(self, msg, submsg=""):
+        if msg in self.shown_errors:
+            return
+        print(msg, submsg, file=sys.stderr)
+        self.shown_errors.add(msg)
 
 class Station:
 
@@ -183,6 +194,10 @@ class Car:
                 continue
             path = db.get_path(evt_from.station_name, evt_to.station_name)
             if not path:
+                db.error(
+                    "ERROR: path '{0}', '{1}' not found".format(evt_from.station_name, evt_to.station_name),
+                    "Referenced by: {0} event {1}".format(self.name, i)
+                )
                 result.append(evt_to)
                 continue
             path_point_time = path.get_point_time(db)
@@ -286,11 +301,13 @@ class ReversedPath:
 
 class Path:
 
-    def __init__(self, points=None, from_sta=None, to_sta=None, name=None, via=None, point_time=None, **kw):
+    def __init__(self, points=None, from_sta=None, to_sta=None, name=None, via=None, **kw):
         self.from_sta = from_sta or kw.get('from')
         self.to_sta = to_sta or kw.get('to')
 
         if 'fromto' in kw:
+            if len(kw['fromto']) < 2:
+                print("Error: less than 1 point ({0}) at fromto".format(kw['fromto']))
             self.from_sta, self.to_sta = kw['fromto']
 
         self.name = name
@@ -348,7 +365,10 @@ class Path:
                     to_p, from_p = from_p, to_p
                 including_path = db.get_path(from_p, to_p)
                 if not including_path:
-                    print("Route {0} -> {1} does not exists.".format(from_p, to_p))
+                    db.error(
+                        "ERROR: Route ['{0}', '{1}'] does not exists.".format(from_p, to_p),
+                        "Referenced by ['{0}', '{1}'] (include)".format(self.from_sta, self.to_sta)
+                    )
                 else:
                     result_path.extend(including_path.get_points_included(db))
             else:
@@ -374,6 +394,8 @@ class Path:
             point_dur.append(edge_len / speed)
 
         all_dur = sum(point_dur)
+        assumed_dur_min = floor(all_dur * 60)
+        print("Notice: Assumed duration for ['{0}', '{1}']{3} = {2}min".format(self.from_sta, self.to_sta, assumed_dur_min, '(rev)' if reverse else ''))
 
         for i in range(1, len(points)):
             point_time.append(
