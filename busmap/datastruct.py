@@ -45,9 +45,22 @@ class Database:
         self.lines = {}
         self.cars = {}
         self.paths = []
+        self.event_signs = set()
 
         self.dumped_data = None
         self.shown_errors = set()
+
+        self.generate_base_event_signs()
+
+    def generate_base_event_signs(self):
+        for i in range(0, 27*60*60, 10*60):
+            self.add_event_sign(i, 'tick10min')
+        for i in range(0, 27*60*60, 5*60):
+            self.add_event_sign(i, 'tick5min')
+        for i in range(0, 27*60*60, 2*60):
+            self.add_event_sign(i, 'tick2min')
+        for i in range(0, 27*60*60, 60):
+            self.add_event_sign(i, 'tick1min')
 
     def add(self, obj):
         self.dumped_data = None
@@ -99,7 +112,8 @@ class Database:
                 'stations': [sta.ddump(self) for sta in self.stations.values()],
                 'lines': [line.ddump(self) for line in self.lines.values()],
                 'cars': [car.ddump(self) for car in self.cars.values()],
-                'paths': [path.ddump(self) for path in self.paths]
+                'paths': [path.ddump(self) for path in self.paths],
+                'event_signs': [{'ts':es[0], 'mark': es[1]} for es in sorted(self.event_signs)]
             }
         with open(fn, 'w') as f:
             if format == 'debug_text':
@@ -123,6 +137,14 @@ class Database:
             return
         print(msg, submsg, file=sys.stderr)
         self.shown_errors.add(msg)
+
+
+    def add_event_sign(self, ts, mark, desc=None):
+        ts = int(ts)
+        if (ts, mark) not in self.event_signs:
+            self.event_signs.add((ts, mark))
+
+
 
 class Station:
 
@@ -185,6 +207,7 @@ class Car:
         if not resolve:
             return events
 
+        db.add_event_sign(events[0].time, 'spawn_car', "Spawn car " + self.name)
         result = [events[0]]
         for i in range(1, len(events)):
             evt_from = events[i-1]
@@ -192,6 +215,7 @@ class Car:
             if evt_from.station_name == evt_to.station_name:
                 result.append(evt_to)
                 continue
+            db.add_event_sign(events[i].time, 'disappear_car' if len(events)-1 == i else 'stop_car')
             path = db.get_path(evt_from.station_name, evt_to.station_name)
             if not path:
                 db.error(

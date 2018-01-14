@@ -62,7 +62,40 @@ function interpolation2(a, b, p){
 }
 
 
+const g_sound_map = {
+    //"tick5min": "tone-sin-low-100.mp3",
+    "spawn_car": "tone-sin-low-100.mp3",
+    'stop_car': 'tone1.mp3',
+    'disappear_car': 'tone-720-sin-fo.mp3'
+};
+
+const g_audio_objs = {};
+
+function prepare_audio() {
+
+    for(let snd in g_sound_map){
+        g_audio_objs[snd] = [];
+        for(let i = 0; i < 8; i++){
+            g_audio_objs[snd].push(new Audio(g_sound_map[snd]));
+        }
+    }
+}
+
+function play_sound_for(key) {
+    if(key in g_audio_objs){
+        for(let audio of g_audio_objs[key]){
+            if(audio.paused){
+                audio.play();
+                return;
+            }
+        }
+        console.warn("Too many play for:" + key);
+    }
+}
+
 g_last_ts = null;
+g_last_event_mark_index = 0;
+
 function updateCarsWithTime(ts) {
     ts = parseInt(ts);
 
@@ -107,6 +140,30 @@ function updateCarsWithTime(ts) {
         }
     }
 
+    // 音を鳴らす
+    if(canSkip){
+        const play_sounds = {};
+        while(DB.event_signs.length > g_last_event_mark_index){
+            const sign = DB.event_signs[g_last_event_mark_index];
+            if(sign.ts <= g_last_ts){
+                g_last_event_mark_index += 1;
+                continue;
+            }
+            if(sign.ts > ts){
+                break;
+            }
+            play_sounds[sign.mark] = 1;
+            g_last_event_mark_index += 1;
+        }
+
+        for(let key in play_sounds){
+            play_sound_for(key);
+        }
+    }else{
+        g_last_event_mark_index = 0;
+    }
+
+    g_last_ts = ts;
 }
 
 function stopAnimationTimer(){
@@ -116,16 +173,25 @@ function stopAnimationTimer(){
     }
 }
 
+g_last_time = null;
 function increseTime(tv){
-    const newVal = parseInt($('.timeslider').val()) + tv;
+    const now_t = new Date().getTime();
+    if(!g_last_time || now_t < g_last_time){
+        g_last_time = now_t;
+    }
+
+    const newVal = parseFloat($('.timeslider').val()) + (tv * (now_t - g_last_time) / 1000.0);
     $('.timeslider').val(newVal);
-    $('.timeval').text("TIME: " + timeSecondsToTimeStr(newVal) + " (Animating)");
+    $('.timeval').text("TIME: " + timeSecondsToTimeStr(newVal) + " (Animating) raw=" + newVal);
     updateCarsWithTime(newVal);
+    g_last_time = now_t;
 }
 
 
 
 function main(){
+
+    prepare_audio();
 
     gCarMap = L.map('mapbox').setView([35.38143, 139.92711], 12);
     for(let car of DB.cars) {
@@ -143,11 +209,6 @@ function main(){
         }
     ).addTo(gCarMap);
 
-
-
-
-
-
     $('.timeslider').on('change', ()=>{
         const tv = $('.timeslider').val();
         $('.timeval').text("TIME: " + timeSecondsToTimeStr(tv));
@@ -156,12 +217,6 @@ function main(){
         // marker.setLatLng(pos);
     });
 
-    $('.play1_btn').on('click', ()=>{
-        stopAnimationTimer();
-        gAnimationTimer = setInterval(()=>{
-            increseTime(1);
-        }, 10);
-    });
 
     $('.play_with_speed_btn').on('click', (e)=>{
         stopAnimationTimer();
@@ -170,14 +225,7 @@ function main(){
 
         gAnimationTimer = setInterval(()=>{
             increseTime(parseInt(speed));
-        }, timerInterval);
-    });
-
-    $('.play10_btn').on('click', ()=>{
-        stopAnimationTimer();
-        gAnimationTimer = setInterval(()=>{
-            increseTime(10);
-        }, 10);
+        }, 1);
     });
 
     $('.stop_btn').on('click', ()=>{

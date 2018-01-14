@@ -28,12 +28,14 @@
 </head>
 <body>
     <div>
-        <label>T:<input class="timeslider" type="range" name="range" min="0" max="97200"></label>
-        <button class="play_with_speed_btn" speed="1" interval="20">Play1</button>
-        <button class="play_with_speed_btn" speed="3" interval="20">Play3</button>
-        <button class="play_with_speed_btn" speed="5" interval="20">Play5</button>
-        <button class="play_with_speed_btn" speed="10" interval="20">Play10</button>
-        <button class="play_with_speed_btn" speed="20" interval="20">Play20</button>
+        <label>T:<input class="timeslider" type="range" name="range" min="0" max="97200" step="any"></label>
+        <button class="play_with_speed_btn" speed="1" interval="20">1s/s</button>
+        <button class="play_with_speed_btn" speed="3" interval="20">3s/s</button>
+        <button class="play_with_speed_btn" speed="5" interval="20">5s/s</button>
+        <button class="play_with_speed_btn" speed="60" interval="20">1m/s</button>
+        <button class="play_with_speed_btn" speed="120" interval="20">2m/s</button>
+        <button class="play_with_speed_btn" speed="300" interval="20">5m/s</button>
+        <button class="play_with_speed_btn" speed="600" interval="20">10m/s</button>
         <button class="stop_btn">Stop</button>
         <br>
 
@@ -46,6 +48,13 @@
         <button class="route-remove-one-button">Remove one</button>
         <button class="route-clear-button">Clear route</button>
         <div class="route-data"></div>
+
+    </div>
+    <div>
+        <audio class="sound-tick5min" src="tone-sin-low-100.mp3"></audio>
+        <audio class="sound-spawn_car" src="tone-500-sin-fio.mp3"></audio>
+        <audio class="sound-stop_car" src="tone1.mp3"></audio>
+        <audio class="sound-disappear_car" src="tone-720-sin-fo.mp3"></audio>
 
     </div>
 </body>
