@@ -2,4 +2,9 @@
 
 tmp/
 build/
+www/db.json
+www/db.js
+__pycache__
+
+.idea/
 
