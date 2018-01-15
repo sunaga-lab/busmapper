@@ -17,33 +17,56 @@
     <style>
 
         #mapbox {
-            height: 800px;
+            width: 640px;
+            height: 640px;
         }
 
         .timeslider{
             width: 50%;
         }
 
+        .render-mode .play_with_speed_btn{
+            display: none;
+        }
+
+        .render-mode .time-label-on-map{
+            font-size: 72px;
+            position: absolute;
+            left: 400px;
+            top: 200px;
+            z-index: 10000;
+            width: 200px;
+            font-family: monospace;
+            text-align: right;
+
+            color: #68F;
+            font-weight: bold;
+            -webkit-text-stroke: 2px black;
+        }
+        .render-mode .otherval{
+            display: none;
+        }
+
     </style>
 </head>
 <body>
     <div>
-        <label>T:<input class="timeslider" type="range" name="range" min="0" max="97200" step="any"></label>
-        <button class="play_with_speed_btn" speed="1" interval="20">1s/s</button>
-        <button class="play_with_speed_btn" speed="3" interval="20">3s/s</button>
-        <button class="play_with_speed_btn" speed="5" interval="20">5s/s</button>
-        <button class="play_with_speed_btn" speed="60" interval="20">1m/s</button>
-        <button class="play_with_speed_btn" speed="120" interval="20">2m/s</button>
-        <button class="play_with_speed_btn" speed="300" interval="20">5m/s</button>
-        <button class="play_with_speed_btn" speed="600" interval="20">10m/s</button>
+        <label>T:<input class="timeslider" type="range" name="range" min="0" max="97200" step="any" value="16200"></label>
+        <button class="play_with_speed_btn" speed="1">1s/s</button>
+        <button class="play_with_speed_btn" speed="60">1m/s</button>
+        <button class="play_with_speed_btn" speed="120">2m/s</button>
+        <button class="play_with_speed_btn" speed="300">5m/s</button>
+        <button class="play_with_speed_btn" speed="600">10m/s</button>
+        <button class="play_step_btn" step="1">ST:1</button>
+        <button class="play_step_btn animation-rendering-step" step="10">ST:10</button>
         <button class="stop_btn">Stop</button>
-        <br>
-
-        <span class="timeval"></span>
+        <button class="rendermode_btn">RenderMode</button>
+        TIME: <span class="timeval"></span><span class="otherval"></span>
     </div>
     <div>
          <div id="mapbox"></div>
     </div>
+    <div class="time-label-on-map"><span class="timeval"></span></div>
     <div>
         <button class="route-remove-one-button">Remove one</button>
         <button class="route-clear-button">Clear route</button>

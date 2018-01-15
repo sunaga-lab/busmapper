@@ -8,19 +8,19 @@ let gAnimationTimer = null;
 
 const gIcons = {};
 const busIconWithColor = (color)=> L.icon({
-        iconUrl: 'bus-small-'+color+'.png',
+        iconUrl: 'icons/bus-icon-'+color+'.png',
         // shadowUrl: 'leaf-shadow.png',
-        iconSize:     [20, 20], // size of the icon
+        iconSize:     [26, 26], // size of the icon
         // shadowSize:   [50, 64], // size of the shadow
-        iconAnchor:   [10, 18], // point of the icon which will correspond to marker's location
+        iconAnchor:   [13, 20], // point of the icon which will correspond to marker's location
         // shadowAnchor: [4, 62],  // the same for the shadow
-        popupAnchor:  [0, -18] // point from which the popup should open relative to the iconAnchor
+        popupAnchor:  [0, -20] // point from which the popup should open relative to the iconAnchor
     });
 
 gIcons["高速バス木更津・品川線"] = busIconWithColor('red');
-gIcons["高速バス木更津・東京線"] = busIconWithColor('yellow');
+gIcons["高速バス木更津・東京線"] = busIconWithColor('purple');
 gIcons["高速バス木更津・新宿線"] = busIconWithColor('blue');
-gIcons["高速バス木更津・川崎線"] = busIconWithColor('skyblue');
+gIcons["高速バス木更津・川崎線"] = busIconWithColor('cyan');
 gIcons["高速バス木更津・羽田空港線"] = busIconWithColor('green');
 
 const gDefaultIcon = busIconWithColor('purple');
@@ -62,35 +62,61 @@ function interpolation2(a, b, p){
 }
 
 
-const g_sound_map = {
-    //"tick5min": "tone-sin-low-100.mp3",
-    "spawn_car": "tone-sin-low-100.mp3",
-    'stop_car': 'tone1.mp3',
-    'disappear_car': 'tone-720-sin-fo.mp3'
-};
+
+const g_sound_map = [
+    ['tone-sin-E2-fo', 'tick2min'],
+    ['tone-sin-A4-fo', '高速バス木更津・羽田空港線', '下り'],
+    ['tone-sin-E5-fo', '高速バス木更津・東京線', '下り'],
+    ['tone-sin-C5-fo', '高速バス木更津・新宿線', '下り'],
+    ['tone-sin-A6-fo', '高速バス木更津・品川線', '下り'],
+    ['tone-sin-A5-fo', '高速バス木更津・川崎線', '下り'],
+
+    ['tone-sin-A3-fo', '高速バス木更津・羽田空港線', '上り'],
+    ['tone-sin-E4-fo', '高速バス木更津・東京線', '上り'],
+    ['tone-sin-C4-fo', '高速バス木更津・新宿線', '上り'],
+    ['tone-sin-E3-fo', '高速バス木更津・品川線', '上り'],
+    ['tone-sin-C3-fo', '高速バス木更津・川崎線', '上り'],
+]
 
 const g_audio_objs = {};
 
 function prepare_audio() {
-
-    for(let snd in g_sound_map){
-        g_audio_objs[snd] = [];
+    for(let line of g_sound_map){
+        const fn = line[0];
+        if(fn in g_audio_objs){
+            continue;
+        }
+        g_audio_objs[fn] = [];
         for(let i = 0; i < 8; i++){
-            g_audio_objs[snd].push(new Audio(g_sound_map[snd]));
+            const audio = new Audio('sounds/' + fn + '.mp3');
+            audio.volume = 0.05;
+            g_audio_objs[fn].push(audio);
         }
     }
 }
 
 function play_sound_for(key) {
-    if(key in g_audio_objs){
-        for(let audio of g_audio_objs[key]){
-            if(audio.paused){
-                audio.play();
-                return;
+    for(let line of g_sound_map){
+        let matchAutio = line[0];
+        for(let elem of line.slice(1)){
+            if(key.indexOf(elem) == -1){
+                matchAutio = null;
+                break;
             }
         }
-        console.warn("Too many play for:" + key);
+        if(matchAutio !== null){
+            for(let audio of g_audio_objs[matchAutio]){
+
+                if(audio.paused){
+                    audio.play();
+                    return;
+                }
+            }
+            console.warn("Too many play for:" + matchAutio);
+            return;
+        }
     }
+    console.warn("Not match for:" + key);
 }
 
 g_last_ts = null;
@@ -180,20 +206,24 @@ function increseTime(tv){
         g_last_time = now_t;
     }
 
-    const newVal = parseFloat($('.timeslider').val()) + (tv * (now_t - g_last_time) / 1000.0);
-    $('.timeslider').val(newVal);
-    $('.timeval').text("TIME: " + timeSecondsToTimeStr(newVal) + " (Animating) raw=" + newVal);
-    updateCarsWithTime(newVal);
+    increseStep(tv * (now_t - g_last_time) / 1000.0);
     g_last_time = now_t;
 }
 
+function increseStep(step) {
+    const newVal = parseFloat($('.timeslider').val()) + (step);
+    $('.timeslider').val(newVal);
+    $('.timeval').text(timeSecondsToTimeStr(newVal));
+    $('.otherval').text("(Animating) raw=" + newVal);
+    updateCarsWithTime(newVal);
 
+}
 
 function main(){
 
     prepare_audio();
 
-    gCarMap = L.map('mapbox').setView([35.38143, 139.92711], 12);
+    gCarMap = L.map('mapbox', { zoomControl:false }).setView([35.52800, 139.83000], 11);
     for(let car of DB.cars) {
         gCars[car.name] = {
             marker: null,
@@ -211,12 +241,19 @@ function main(){
 
     $('.timeslider').on('change', ()=>{
         const tv = $('.timeslider').val();
-        $('.timeval').text("TIME: " + timeSecondsToTimeStr(tv));
+        $('.timeval').text(timeSecondsToTimeStr(tv));
+        $('.otherval').text("");
         updateCarsWithTime(tv);
         // const pos = new L.LatLng(36.3219088 + parseFloat(tv) * 0.00001, 139.0032936);
         // marker.setLatLng(pos);
     });
 
+
+    $('.play_step_btn').on('click', (e)=>{
+        const step = $(e.currentTarget).attr('step');
+        increseStep(parseFloat(step));
+
+    });
 
     $('.play_with_speed_btn').on('click', (e)=>{
         stopAnimationTimer();
@@ -224,7 +261,7 @@ function main(){
         const timerInterval = $(e.currentTarget).attr('interval');
 
         gAnimationTimer = setInterval(()=>{
-            increseTime(parseInt(speed));
+            increseTime(parseFloat(speed));
         }, 1);
     });
 
@@ -258,6 +295,10 @@ function main(){
         }
         gRouteMarkers = [];
         $('.route-data .point').remove();
+    });
+
+    $('.rendermode_btn').on('click', ()=>{
+        $('body').addClass('render-mode')
     });
 
 }

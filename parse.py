@@ -37,7 +37,7 @@ def parse_kisarazu_shinagawa():
             tr.decl_column(clipped_page.search_text_contains("金田BT発").first().dmark())
             tr.decl_column(clipped_page.search_text_contains("品川駅東口着").first().dmark())
             tr.decl_sequential_rows(clipped_page.search_text_contains("上り").first(), range(1, 500))
-            return tr.gen_with_table_attrs(tablename='T1', linename='高速バス木更津・品川線', day_options=['weekday'])
+            return tr.gen_with_table_attrs(tablename='T上り', linename='高速バス木更津・品川線', day_options=['weekday'])
 
         @build_for('T2.json')
         def build():
@@ -52,7 +52,7 @@ def parse_kisarazu_shinagawa():
             tr.decl_column(clipped_page.search_text_contains("金田BT着").first().dmark())
             tr.decl_column(clipped_page.search_text_contains("品川駅東口発").first().dmark())
             tr.decl_sequential_rows(clipped_page.search_text_contains("下り").first(), range(1, 500))
-            return tr.gen_with_table_attrs(tablename='T2', linename='高速バス木更津・品川線', day_options=['weekday'])
+            return tr.gen_with_table_attrs(tablename='T下り', linename='高速バス木更津・品川線', day_options=['weekday'])
 
     import_tables('T1.json', 'T2.json')
 
@@ -86,7 +86,7 @@ def parse_kisarazu_haneda():
             r.decl_column(clipped_page.search_text_contains("第2ターミナル").first().dmark())
             r.decl_column(clipped_page.search_text_contains("国際ターミナル").first().dmark())
             r.decl_sequential_rows(clipped_page.search_text_contains("便").first(), range(1, 500))
-            return r.gen_with_table_attrs(tablename='T1', linename='高速バス木更津・羽田空港線', day_options=['weekday'])
+            return r.gen_with_table_attrs(tablename='T上り', linename='高速バス木更津・羽田空港線', day_options=['weekday'])
 
 
         @build_for('T2.json')
@@ -104,7 +104,7 @@ def parse_kisarazu_haneda():
             r.decl_column(clipped_page.search_text_contains("第2ターミナル").first().dmark())
             r.decl_column(clipped_page.search_text_contains("国際ターミナル").first().dmark())
             r.decl_sequential_rows(clipped_page.search_text_contains("便").first(), range(1, 500))
-            return r.gen_with_table_attrs(tablename='T2', linename='高速バス木更津・羽田空港線', day_options=['weekday'])
+            return r.gen_with_table_attrs(tablename='T下り', linename='高速バス木更津・羽田空港線', day_options=['weekday'])
 
     import_tables(
         'T1.json',
@@ -122,13 +122,13 @@ def parse_kisarazu_kawasaki():
         def build():
             tbls = reader.make_table_readers("//*[text()='袖ヶ浦バスターミナル・木更津駅ゆき']/following::table")
             table = tbls[0].concat_vert_with(tbls[1])
-            return table.with_table_atts(tablename="T1", linename='高速バス木更津・川崎線', day_options=['weekday'])
+            return table.with_table_atts(tablename="T下り", linename='高速バス木更津・川崎線', day_options=['weekday'])
 
         @build_for('T2.json')
         def build():
             tbls = reader.make_table_readers("//*[text()='川崎駅ゆき']/following::table")
             table = tbls[0].concat_vert_with(tbls[1])
-            return table.with_table_atts(tablename="T2", linename='高速バス木更津・川崎線', day_options=['weekday'])
+            return table.with_table_atts(tablename="T上り", linename='高速バス木更津・川崎線', day_options=['weekday'])
 
     import_tables(
         'T1.json',
@@ -144,12 +144,12 @@ def parse_kisarazu_shinjuku():
         reader = htmlutil.HTMLReader("http://www.odakyubus.co.jp/highway/line/aqualine.html")
         tables = reader.make_table_readers("//*[text()='平日(月～金)']/following::table")
         tables[0].with_table_atts(
-            tablename="T1",
+            tablename="T下り",
             linename='高速バス木更津・新宿線',
             day_options=['weekday']
         )
         tables[1].with_table_atts(
-            tablename="T2",
+            tablename="T上り",
             linename='高速バス木更津・新宿線',
             day_options=['weekday']
         )
@@ -175,7 +175,7 @@ def parse_kisarazu_tokyo():
             )
             for i, table in enumerate(tables):
                 table.with_table_atts(
-                    tablename="上りT" + str(i + 1),
+                    tablename="T上り" + str(i + 1),
                     linename='高速バス木更津・東京線',
                     day_options=['weekday'],
                     invert_axis=True
@@ -191,7 +191,7 @@ def parse_kisarazu_tokyo():
             )
             for i, table in enumerate(tables):
                 table.with_table_atts(
-                    tablename="下りT" + str(i + 1),
+                    tablename="T下り" + str(i + 1),
                     linename='高速バス木更津・東京線',
                     day_options=['weekday'],
                     invert_axis=True

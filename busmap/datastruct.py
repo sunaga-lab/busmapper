@@ -207,7 +207,7 @@ class Car:
         if not resolve:
             return events
 
-        db.add_event_sign(events[0].time, 'spawn_car', "Spawn car " + self.name)
+        db.add_event_sign(events[0].time, ':'.join(['spawn_car', self.linename, self.name, events[0].station_name]))
         result = [events[0]]
         for i in range(1, len(events)):
             evt_from = events[i-1]
@@ -215,7 +215,7 @@ class Car:
             if evt_from.station_name == evt_to.station_name:
                 result.append(evt_to)
                 continue
-            db.add_event_sign(events[i].time, 'disappear_car' if len(events)-1 == i else 'stop_car')
+            db.add_event_sign(events[i].time, ':'.join(['disappear_car' if len(events)-1 == i else 'stop_car', self.linename, self.name, events[i].station_name]))
             path = db.get_path(evt_from.station_name, evt_to.station_name)
             if not path:
                 db.error(

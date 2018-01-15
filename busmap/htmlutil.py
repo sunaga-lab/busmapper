@@ -7,13 +7,14 @@ import time
 from . import tablereader
 from .datastruct import *
 
+# TODO: rename to browser
 class HTMLReader:
 
-    def __init__(self, url=None):
+    def __init__(self, url=None, width=1024, height=768):
         options = Options()
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')
-        options.add_argument('--window-size=1024,768')
+        options.add_argument('--window-size={0},{1}'.format(width, height))
         self.driver = webdriver.Chrome(chrome_options=options)
         if url is not None:
             self.driver.get(url)
@@ -31,7 +32,6 @@ class HTMLReader:
 
 def striptags(text):
     return re.sub('<[^<]+?>', '', text)
-
 
 class WebBrowserTableReader(tablereader.Table):
 
@@ -56,5 +56,7 @@ class WebBrowserTableReader(tablereader.Table):
             html=table_elem.get_attribute('outerHTML'),
             **kw
         )
+
+
 
 
