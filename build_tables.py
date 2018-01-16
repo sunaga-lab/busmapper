@@ -4,12 +4,14 @@
 from busmap import pdfutil, htmlutil, tablereader, preset_data_reader
 
 from busmap.build_script import *
+import shutil
 
 
 # ビルド設定
 
 # PDFMinerのpdf2txt.pyのパス
-pdfutil.PDF2TXT_PATH = "/usr/local/bin/pdf2txt.py"
+pdfutil.PDF2TXT_PATH = shutil.which('pdf2txt.py')
+
 # PDFレイアウトとかのデバッグ
 pdfutil.pdfutil_debug_enabled = False
 # tablereaderのデバッグ

@@ -8,9 +8,11 @@ Bus Operation Map Visualizer
 各バス運行会社公式サイトにあるHTMLやPDFからデータを引っ張ってきています。
 ジョルダンとかからデータを引っ張ってきたら負けだと思う。
 
-# 実行方法
+# 動作確認環境
+ - データ生成スクリプト: Gentoo Linux, Mac OS X High Sierra + brew
+ - map.html: Firefox 52.5.2, Chrome 63.0
 
-(Mac OS X High Sierra + brew の環境のみで検証済み)
+# 実行方法
 
 1. Dependencyにあるライブラリをインストールしておく。
 2. build_tables.py先頭のビルド設定を確認する
@@ -47,15 +49,17 @@ build_tables.py の @build_group("木更津-品川") に enabled=False をつけ
 
 # Dependency
   - Python 3.6
-  - phantomjs + chromedriver
-  - PDFMiner
+  - Selenium + chromedriver
   - ImageMagick
+  - pdfminer.six (pip) https://github.com/pdfminer/pdfminer.six
+  - zenhan (pip)
 
 ## for media generators (optional)
   - librsvg (rsvg-convert)
   - bash 4.X
 
-# Used Libraries
+
+# その他使用しているライブラリ
   - jQuery
   - Leaflet
   
