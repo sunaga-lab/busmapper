@@ -10,10 +10,12 @@ from .datastruct import *
 # TODO: rename to browser
 class HTMLReader:
 
-    def __init__(self, url=None, width=1024, height=768):
+    def __init__(self, url=None, width=1024, height=768, default_background_color_0=False):
         options = Options()
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')
+        if default_background_color_0:
+            options.add_argument('--default-background-color=0')
         options.add_argument('--window-size={0},{1}'.format(width, height))
         self.driver = webdriver.Chrome(chrome_options=options)
         if url is not None:

@@ -17,6 +17,15 @@ if not os.path.exists(ANIM_DIR):
 print("Starting browser...")
 
 
+def masking():
+    browser = htmlutil.HTMLReader(
+        "file://" + os.path.abspath("./anim/desc_frame.html"),
+        width=1024,
+        height=1024,
+        default_background_color_0=True
+    )
+    browser.driver.get_screenshot_as_file(os.path.join(ANIM_DIR, "capture.png"))
+
 
 def main():
     browser = htmlutil.HTMLReader(
@@ -24,13 +33,13 @@ def main():
         width=720,
         height=720
     )
-    browser.driver.get_screenshot_as_file(os.path.join(ANIM_DIR, "a.png"))
+    browser.driver.get_screenshot_as_file(os.path.join(ANIM_DIR, "_start.png"))
 
     # アニメーションモードのスタート
     print("Starting anim mode")
     browser.driver.find_element_by_css_selector('.rendermode_btn').click()
 
-    browser.driver.get_screenshot_as_file(os.path.join(ANIM_DIR, "amode.png"))
+    browser.driver.get_screenshot_as_file(os.path.join(ANIM_DIR, "_anim_mode.png"))
 
     step_button = browser.driver.find_element_by_css_selector('.animation-rendering-step')
 
@@ -51,6 +60,6 @@ def main():
         region_noalpha.close()
         pngstrm.close()
 
-
+# masking()
 main()
 

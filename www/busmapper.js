@@ -1,6 +1,10 @@
 
 
 
+ENABLE_EVENT_SIGNS = false;
+ENABLE_SOUNDS = false;
+
+
 let gCarMap = null;
 const gCars = {};
 let gAnimationTimer = null;
@@ -167,28 +171,29 @@ function updateCarsWithTime(ts) {
     }
 
     // 音を鳴らす
-    if(canSkip){
-        const play_sounds = {};
-        while(DB.event_signs.length > g_last_event_mark_index){
-            const sign = DB.event_signs[g_last_event_mark_index];
-            if(sign.ts <= g_last_ts){
+    if(ENABLE_EVENT_SIGNS && ENABLE_SOUNDS) {
+        if (canSkip) {
+            const play_sounds = {};
+            while (DB.event_signs.length > g_last_event_mark_index) {
+                const sign = DB.event_signs[g_last_event_mark_index];
+                if (sign.ts <= g_last_ts) {
+                    g_last_event_mark_index += 1;
+                    continue;
+                }
+                if (sign.ts > ts) {
+                    break;
+                }
+                play_sounds[sign.mark] = 1;
                 g_last_event_mark_index += 1;
-                continue;
             }
-            if(sign.ts > ts){
-                break;
-            }
-            play_sounds[sign.mark] = 1;
-            g_last_event_mark_index += 1;
-        }
 
-        for(let key in play_sounds){
-            play_sound_for(key);
+            for (let key in play_sounds) {
+                play_sound_for(key);
+            }
+        } else {
+            g_last_event_mark_index = 0;
         }
-    }else{
-        g_last_event_mark_index = 0;
     }
-
     g_last_ts = ts;
 }
 

@@ -10,13 +10,14 @@ tablereader.tablereader_debug_enabled = False
 
 debug_pages = []
 
+pdfutil.PDF2TXT_PATH = "/usr/local/bin/pdf2txt.py"
 
 @build_group("木更津-品川")
 def parse_kisarazu_shinagawa():
 
     @build_for('stables')
     def build():
-        pages = pdfutil.pdfxmlfile_to_pages("data/parsed-shinagawa.xml", original_pdf="data/shinagawa.pdf")
+        pages = load_pdfpages_from_url('http://www.nitto-kotsu.co.jp/img/kosoku/shinagawa.pdf')
         page = pages[0]
         debug_pages.append(page)
 
@@ -62,7 +63,7 @@ def parse_kisarazu_haneda():
 
     @build_for('tables')
     def build():
-        pages = pdfutil.pdfxmlfile_to_pages("data/parsed_kosoku-kisarazu-haneda.xml", original_pdf="data/kosoku-kisarazu-haneda.pdf")
+        pages = load_pdfpages_from_url('http://www.nitto-kotsu.co.jp/img/kosoku/kosoku-kisarazu-haneda.pdf')
         page = pages[0]
         debug_pages.append(page)
 

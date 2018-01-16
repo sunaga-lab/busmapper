@@ -13,6 +13,7 @@ from . import tablereader
 
 pdfutil_debug_enabled = False
 
+PDF2TXT_PATH = "pdf2txt.py"
 
 
 def pdf_rasterized(pdffn, page):
@@ -628,7 +629,7 @@ def pdfxml_to_pages(pdfxml, original_pdf=None):
 def pdf_to_pdfxml(pdffn):
     print("Running pdf2txt...")
     cmd = ["python3",
-           "/usr/local/bin/pdf2txt.py",
+           PDF2TXT_PATH,
            pdffn, "-t", "xml"]
     proc = subprocess.run(args=cmd, check=True, stdout=subprocess.PIPE)
     xmltxt = proc.stdout

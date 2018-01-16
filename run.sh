@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-./parse.py > prolog/db.pl
+build_tables.py > prolog/db.pl
 
 swipl -f prolog/busmapper.pl
 

@@ -9,6 +9,10 @@ import zenhan
 import sys
 
 
+# ルートの推定所要時刻の出力
+# (ルート作成時の速度表記の参考)
+enable_estimate_path_duration = False
+
 STATION_WP_WAIT_TIME = 30
 DAY_SPLIT = 3 * 60 * 60 # 3:00区切り
 
@@ -419,7 +423,8 @@ class Path:
 
         all_dur = sum(point_dur)
         assumed_dur_min = floor(all_dur * 60)
-        print("Notice: Assumed duration for ['{0}', '{1}']{3} = {2}min".format(self.from_sta, self.to_sta, assumed_dur_min, '(rev)' if reverse else ''))
+        if enable_estimate_path_duration:
+            print("Notice: Assumed duration for ['{0}', '{1}']{3} = {2}min".format(self.from_sta, self.to_sta, assumed_dur_min, '(rev)' if reverse else ''))
 
         for i in range(1, len(points)):
             point_time.append(
