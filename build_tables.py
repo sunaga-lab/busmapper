@@ -5,12 +5,19 @@ from busmap import pdfutil, htmlutil, tablereader, preset_data_reader
 
 from busmap.build_script import *
 
+
+# ビルド設定
+
+# PDFMinerのpdf2txt.pyのパス
+pdfutil.PDF2TXT_PATH = "/usr/local/bin/pdf2txt.py"
+# PDFレイアウトとかのデバッグ
 pdfutil.pdfutil_debug_enabled = False
+# tablereaderのデバッグ
 tablereader.tablereader_debug_enabled = False
 
-debug_pages = []
 
-pdfutil.PDF2TXT_PATH = "/usr/local/bin/pdf2txt.py"
+
+debug_pages = []
 
 @build_group("木更津-品川")
 def parse_kisarazu_shinagawa():
